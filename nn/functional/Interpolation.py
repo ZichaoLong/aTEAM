@@ -1,4 +1,4 @@
-"""interpolaitons"""
+"""interpolatons"""
 import numpy as np
 from numpy import *
 import torch
@@ -38,7 +38,7 @@ def _ele2coe(m, degree):
     return ele2coe
 
 def _fix_inputs(inputs, interp_dim, interp_degree, 
-        mesh_bound, mesh_size, ele2coe=None):
+        mesh_bound, mesh_size, ele2coe):
     """
     Arguments:
         inputs (Variable): DoubleTensor (cuda) or FloatTensor (cuda). 
@@ -50,6 +50,7 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
             defines the interpolation domain.
         mesh_size (ndarray): dtype=int, shape=[m,]. mesh_size defines the 
             grid number of piecewise interpolation.
+        ele2coe (Variable): see LagrangeInterp.
     Returns:
         flat_indices (Variable)
         points_shift (Variable)
@@ -59,11 +60,10 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
     d = interp_degree
 
     mesh_bound = torch.from_numpy(mesh_bound)
-    mesh_bound = Variable(mesh_bound).type_as(inputs)
-    if inputs.is_cuda:
-        mesh_size = torch.from_numpy(mesh_size).type(torch.cuda.LongTensor)
-    else:
-        mesh_size = torch.from_numpy(mesh_size).type(torch.LongTensor)
+    mesh_bound = inputs.data.new(mesh_bound.size()).copy_(mesh_bound)
+    mesh_bound = Variable(mesh_bound)
+    mesh_size = torch.from_numpy(mesh_size)
+    mesh_size = inputs.data.new().long().new(mesh_size.size()).copy_(mesh_size)
     mesh_size = Variable(mesh_size)
     inputs = torch.max(inputs, mesh_bound[newaxis,0,:])
     inputs = torch.min(inputs, mesh_bound[newaxis,1,:])
@@ -111,7 +111,8 @@ def _base(points_shift, interp_dim, interp_degree):
 
     base_function = ndarray(shape=[m,d+1],dtype=np.object)
     grid = torch.from_numpy(arange(d+1)/d)[newaxis,:]
-    grid = Variable(grid).type_as(points_shift)
+    grid = points_shift.data.new(grid.size()).copy_(grid)
+    grid = Variable(grid)
     for i in range(m):
         M = points_shift[:,i,newaxis]-grid
         for j in range(d+1):
@@ -161,12 +162,14 @@ def LagrangeInterp(inputs, *, interp_coe, interp_dim, interp_degree,
     d = interp_degree
     assert d>0, "degree of interpolation polynomial must be greater than 0."
 
+    assert inputs.is_cuda == interp_coe.is_cuda
+    if inputs.is_cuda:
+        assert inputs.get_device() == interp_coe.get_device()
+
     if ele2coe is None:
         ele2coe = torch.from_numpy(_ele2coe(m, d))
-        if inputs.is_cuda:
-            ele2coe = Variable(ele2coe).type(torch.cuda.LongTensor)
-        else:
-            ele2coe = Variable(ele2coe).type(torch.LongTensor)
+        ele2coe = inputs.data.new().long().new(ele2coe.size()).copy_(ele2coe)
+        ele2coe = Variable(ele2coe)
 
     if not fix_inputs:
         flat_indices, points_shift = _fix_inputs(inputs, m, d, \
