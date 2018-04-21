@@ -29,8 +29,6 @@ class NumpyFuncitonInterface(ParamGroupsManager):
         params (iterable): See ParamGroupsManager.__doc__
         forward (callable): callable forward(**kw)
             torch forward procedure, return a :class:`Variable`
-        device (int): GPU device id, if parameters are on host, please set 
-            device<0.
         isfrozen (bool): whether parameters should be frozen, if you set 
             isfrozen=True, as a result, grad of this param_group would be 
             set to be 0 after calling self.fprime(x).
@@ -43,9 +41,9 @@ class NumpyFuncitonInterface(ParamGroupsManager):
         **kw (keyword args): other options for parameter groups
     """
 
-    def __init__(self, params, forward, *, device=-1, 
+    def __init__(self, params, forward, *, 
             isfrozen=False, x_proj=None, grad_proj=None, **kw):
-        defaults = dict(device=device, isfrozen=isfrozen, 
+        defaults = dict(isfrozen=isfrozen, 
                 x_proj=x_proj, grad_proj=grad_proj, **kw)
         super(NumpyFuncitonInterface, self).__init__(params, defaults)
         self.dtype = next(self.params).data.cpu().numpy().dtype
@@ -85,20 +83,13 @@ class NumpyFuncitonInterface(ParamGroupsManager):
         param_group_tmp = self.param_groups[-1]
         # check consistency of x_proj,grad_proj,isfrozen
         NumpyFuncitonInterface._proj_check(param_group_tmp)
-        # check device,is_leaf,requires_grad
-        device = param_group_tmp['device']
+        # check is_leaf,requires_grad
         for _,p in param_group_tmp['params'].items():
             if not p.is_leaf:
                 raise ValueError("can't manage a non-leaf Variable")
             if not p.requires_grad:
                 raise ValueError("managing a Variable that does not "
                         "require gradients")
-            if p.is_cuda:
-                assert p.get_device() == device, "parameters was not "\
-                        "allocated in gpu:param_group['device']="+str(device)
-            else:
-                assert device<0, "received a cpu Variable, but " \
-                        "param_group['device']="+str(device)
         self.options_refresh()
 
     @property
@@ -149,15 +140,14 @@ class NumpyFuncitonInterface(ParamGroupsManager):
     def flat_param(self, x):
         assert isinstance(x, np.ndarray)
         assert x.size == self.numel()
-        x = x.astype(self.dtype).copy()
+        x = x.astype(dtype=self.dtype,copy=False)
         offset = 0
-        for isfrozen,device,p in self.params_with_info('isfrozen','device'):
+        for isfrozen,p in self.params_with_info('isfrozen'):
             numel = p.numel()
             if not isfrozen:
-                p.data = torch.from_numpy(x[offset:offset+numel])\
+                p_tmp = torch.from_numpy(x[offset:offset+numel])\
                         .view_as(p.data)
-                if device>=0:
-                    p.data = p.data.cuda(device)
+                p.data.copy_(p_tmp)
             offset += numel
         self._all_x_proj()
 
