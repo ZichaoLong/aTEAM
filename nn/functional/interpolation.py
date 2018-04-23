@@ -6,7 +6,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from scipy.misc import factorial
 
-__all__ = ['LagrangeInterp',]
+__all__ = ['lagrangeinterp',]
 
 def _ele2coe(m, degree):
     """
@@ -50,7 +50,7 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
             defines the interpolation domain.
         mesh_size (ndarray): dtype=int, shape=[m,]. mesh_size defines the 
             grid number of piecewise interpolation.
-        ele2coe (Variable): see LagrangeInterp.
+        ele2coe (Variable): see lagrangeinterp.
     Returns:
         flat_indices (Variable)
         points_shift (Variable)
@@ -134,8 +134,8 @@ def _base(points_shift, interp_dim, interp_degree):
     base = base.view([N,-1])
     return base
 
-def LagrangeInterp(inputs, *, interp_coe, interp_dim, interp_degree, 
-        mesh_bound, mesh_size, ele2coe=None, 
+def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree, 
+        mesh_bound, mesh_size, *, ele2coe=None, 
         fix_inputs=False, flat_indices=None, points_shift=None, 
         base=None):
     """

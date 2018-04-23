@@ -12,44 +12,23 @@ from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
 import matplotlib.pyplot as plt
 from amator.optim import NumpyFuncitonInterface,ParamGroupsManager
-from amator.nn.functional import lagrangeinterp
+from amator.nn.modules import LagrangeInterp
 from amator.utils import meshgen
 #%%
 def testfunc(inputs):
     """inputs (ndarray)"""
     return sin(inputs[...,0]*8)+cos(sqrt(inputs[...,1]*4))*sin(inputs[...,2]*4)
-
-class Interp(nn.Module):
-    def __init__(self, m, d, mesh_bound, mesh_size, device=-1):
-        super(Interp,self).__init__()
-        self.m = m
-        self.d = d
-        self.mesh_bound = mesh_bound.copy()
-        self.mesh_size = mesh_size.copy()
-        mesh_size = list(map(lambda x:int(x), list(mesh_size*d+1)))
-        interp_coe = torch.DoubleTensor(*mesh_size).normal_()
-        if device>=0:
-            interp_coe = interp_coe.cuda(device)
-        self.interp_coe = nn.Parameter(interp_coe)
-    def infe(self, inputs):
-        if not inputs.is_contiguous():
-            inputs = inputs.clone()
-        inputs_size = inputs.size()
-        outputs = lagrangeinterp(inputs.view([-1,self.m]), interp_coe=self.interp_coe, \
-                interp_dim=self.m, interp_degree=self.d, \
-                mesh_bound=self.mesh_bound, \
-                mesh_size=self.mesh_size).view(inputs_size[:-1])
-        return outputs
-    def forward(self, inputs):
-        outputs = self.infe(inputs)
-        outputs_true = torch.from_numpy(testfunc(inputs.data.cpu().numpy()))
-        outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
-        outputs_true = Variable(outputs_true)
-        return ((outputs-outputs_true)**2).mean()
 def compare(I, inputs):
-    infe = I.infe(inputs).data.cpu().numpy()
+    infe = I(inputs).data.cpu().numpy()
     infe_true = testfunc(inputs.data.cpu().numpy())
     return infe,infe_true
+def forward(I, inputs):
+    outputs = I(inputs)
+    outputs_true = torch.from_numpy(testfunc(inputs.data.cpu().numpy()))
+    outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
+    outputs_true = Variable(outputs_true)
+    return ((outputs-outputs_true)**2).mean()
+
 #%%
 m = 3
 d = 2
@@ -60,13 +39,16 @@ mesh_bound = zeros((2,m))
 mesh_bound[0] = 0
 mesh_bound[1] = 1
 mesh_size = array([40,]*m)
-I = Interp(m,d,mesh_bound, mesh_size, device=device)
+I = LagrangeInterp(m, d, mesh_bound, mesh_size)
+I.double()
+if device>=0:
+    I.cuda(device)
 mesh_bound[1] += 1/200
 dataset = meshgen(mesh_bound, [201,201,201])
 dataset = torch.from_numpy(dataset).clone()
 dataset = I.interp_coe.data.new(dataset.size()).copy_(dataset)
 dataset = Variable(dataset)
-nfi = NumpyFuncitonInterface([I.interp_coe,],forward=lambda :I.forward(dataset))
+nfi = NumpyFuncitonInterface([I.interp_coe,],forward=lambda :forward(I,dataset))
 nfi.flat_param = random.randn(nfi.numel())
 x0 = nfi.flat_param
 #%%
@@ -86,7 +68,7 @@ for i in range(64):
             indx[i,2]:indx[i,2]+inputs_shape[2]
             ]
     inputs = inputs.clone()
-    nfi.forward = lambda :I.forward(inputs)
+    nfi.forward = lambda :forward(I,inputs)
     x = nfi.flat_param
     x,f,d = lbfgsb(nfi.f,x,nfi.fprime,m=1000,maxiter=20,factr=1,pgtol=1e-16,iprint=10)
 #%%
@@ -96,7 +78,7 @@ inputs = dataset[
         random.randint(200/inputs_shape[2])+int(200/inputs_shape[2])*arange(0,inputs_shape[2],dtype=int32)[newaxis,newaxis,:]
         ]
 inputs = inputs.clone()
-nfi.forward = lambda :I.forward(inputs)
+nfi.forward = lambda :forward(I,inputs)
 infe,infe_true = compare(I,inputs)
 print(sqrt((infe-infe_true)**2).mean())
 print(sqrt((infe-infe_true)**2).max())
