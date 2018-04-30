@@ -175,8 +175,7 @@ def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree,
         flat_indices, points_shift = _fix_inputs(inputs, m, d, \
                 mesh_bound, mesh_size, ele2coe)
     
-    if not interp_coe.is_contiguous():
-        interp_coe = interp_coe.clone()
+    interp_coe = interp_coe.contiguous()
     interp_coe_resp = torch.gather(interp_coe.view([-1,]), 0, flat_indices)
     interp_coe_resp = interp_coe_resp.view([N,-1])
 

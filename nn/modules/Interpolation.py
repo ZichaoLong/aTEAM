@@ -73,8 +73,7 @@ class LagrangeInterp(nn.Module):
                 torch.size=[...,m], where m is the spatial dimension.
         """
         size = inputs.size()
-        if not inputs.is_contiguous():
-            inputs = inputs.clone()
+        inputs = inputs.contiguous()
         inputs = inputs.view([-1,self.m])
         outputs = lagrangeinterp(inputs, self.interp_coe, self.m, self.d, 
                 self.mesh_bound, self.mesh_size, ele2coe=Variable(self.ele2coe))

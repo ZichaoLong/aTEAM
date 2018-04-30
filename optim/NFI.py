@@ -33,9 +33,14 @@ class NumpyFuncitonInterface(ParamGroupsManager):
             isfrozen=True, as a result, grad of this param_group would be 
             set to be 0 after calling self.fprime(x).
         x_proj (callable): callable x_proj(param_group['params']). 
-            Make parameters to satisfied linear constraint. 
+            It is similar to nn.module.register_forward_pre_hook(x_proj) but 
+            they are not have to be the same. Each time you call 
+            self.set_options(idx,{'x_proj':x_proj}), self._x_cache will be 
+            set to be None.
+            It can be used to make parameters to satisfied linear constraint. 
             Wether isfrozen or not, x_proj&grad_proj will go their own way.
         grad_proj (callable): callable grad_proj(param_group['params']).
+            It is similar to nn.module.register_backward_hook(grad_proj).
             grad_proj(param_group['params']) should project gradients of 
             param_group['params'] to the constrained linear space if needed.
         **kw (keyword args): other options for parameter groups
