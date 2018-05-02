@@ -1,7 +1,35 @@
 import torch
 from functools import reduce
 
-__all__ = ['tensordot',]
+__all__ = ['tensordot','periodicpad']
+
+def periodicpad(inputs, pad):
+    """
+    'periodic' pad, similar to torch.nn.functional.pad 
+    """
+    n = inputs.dim()
+    inputs = inputs.permute(*list(range(n-1,-1,-1)))
+    pad = iter(pad)
+    i = 0
+    indx = []
+    for a in pad:
+        b = next(pad)
+        assert a<inputs.size()[i] and b<inputs.size()[i]
+        permute = list(range(n))
+        permute[i] = 0
+        permute[0] = i
+        inputs = inputs.permute(*permute)
+        inputlist = [inputs,]
+        if a > 0:
+            inputlist = [inputs[slice(-a,None)],inputs]
+        if b > 0:
+            inputlist = inputlist+[inputs[slice(0,b)],]
+        if a+b > 0:
+            inputs = torch.cat(inputlist,dim=0)
+        inputs = inputs.permute(*permute)
+        i += 1
+    inputs = inputs.permute(*list(range(n-1,-1,-1)))
+    return inputs
 
 def tensordot(a,b,dim):
     """
