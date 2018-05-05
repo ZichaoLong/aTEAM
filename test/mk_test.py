@@ -10,7 +10,7 @@ from torch.nn import functional as F
 import matplotlib.pyplot as plt
 import amator.nn
 from amator.nn.modules import M2K,K2M
-from kernel_basis_filter import switch_moment_filter, diff_monomial_coe
+from amator.utils import switch_moment_filter, diff_monomial_coe
 #%%
 shape = [7,3,5]
 m2k = M2K(shape)
