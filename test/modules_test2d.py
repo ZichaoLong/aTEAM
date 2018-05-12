@@ -42,6 +42,8 @@ mesh_bound[1] = 1
 mesh_size = array([40,]*m)
 I = LagrangeInterp(m,d,mesh_bound,mesh_size)
 I.double()
+if device>=0:
+    I.cuda(device)
 mesh_bound[1] += 1/1000
 dataset = meshgen(mesh_bound, [1001,1001])
 dataset = torch.from_numpy(dataset)
@@ -51,7 +53,6 @@ mesh_bound[1] -= 1/1000
 IFixInputs = LagrangeInterpFixInputs(dataset,m,d,mesh_bound,mesh_size)
 IFixInputs.double()
 if device>=0:
-    I.cuda(device)
     IFixInputs.cuda(device)
 ax = plt.figure().add_subplot(1,1,1)
 ax.imshow(I(dataset).data.cpu().numpy())

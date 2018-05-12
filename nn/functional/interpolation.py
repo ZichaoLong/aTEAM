@@ -157,10 +157,14 @@ def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree,
         outputs (Variable): torch.size=[N,], interpolation value of inputs 
             using interp_coe.
     """
+    inputs = inputs.contiguous()
+    inputs = inputs.view([-1,interp_dim])
     N = inputs.size()[0]
     m = interp_dim
     d = interp_degree
     assert d>0, "degree of interpolation polynomial must be greater than 0."
+    mesh_bound = array(mesh_bound).reshape(2,m)
+    mesh_size = array(mesh_size).reshape(m)
 
     assert inputs.is_cuda == interp_coe.is_cuda
     if inputs.is_cuda:

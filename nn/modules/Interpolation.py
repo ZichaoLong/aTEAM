@@ -27,6 +27,8 @@ class LagrangeInterp(nn.Module):
         super(LagrangeInterp, self).__init__()
         self.__m = interp_dim
         self.__d = interp_degree
+        mesh_bound = array(mesh_bound).reshape(2,self.__m)
+        mesh_size = array(mesh_size).reshape(self.__m)
         self.__mesh_bound = mesh_bound.copy()
         self.__mesh_size = mesh_size.copy()
         __ele2coe = _ele2coe(self.m, self.d)
@@ -73,6 +75,9 @@ class LagrangeInterp(nn.Module):
                 torch.size=[...,m], where m is the spatial dimension.
         """
         size = inputs.size()
+        if self.m == 1 and size[-1] != 1:
+            inputs = inputs[...,newaxis]
+            size = inputs.size()
         inputs = inputs.contiguous()
         inputs = inputs.view([-1,self.m])
         outputs = lagrangeinterp(inputs, self.interp_coe, self.m, self.d, 
@@ -98,23 +103,43 @@ class LagrangeInterpFixInputs(LagrangeInterp):
     def __init__(self, inputs, interp_dim, interp_degree, mesh_bound, mesh_size):
         super(LagrangeInterpFixInputs, self).__init__(interp_dim, 
                 interp_degree, mesh_bound, mesh_size)
+        if not isinstance(inputs, torch.autograd.Variable):
+            inputs = Variable(inputs)
         if not inputs.data.is_cuda:
             self.cpu()
         else:
             self.cuda(inputs.data.get_device())
-        if not inputs.data.is_contiguous():
-            inputs.data = inputs.data.clone()
+        self.register_buffer('_inputs',inputs.data.new(1))
+        self.register_buffer('points_shift', inputs.data.new(1))
+        self.register_buffer('base', inputs.data.new(1))
+        self.update_inputs(inputs)
+
+    def update_inputs(self, inputs):
+        if not self._inputs.is_cuda:
+            inputs.data = inputs.data.cpu()
+        else:
+            inputs.data = inputs.data.cuda(self._inputs.get_device())
+        inputs.data = inputs.data.contiguous()
         size = inputs.size()
+        if self.m == 1 and size[-1] != 1:
+            inputs = inputs[...,newaxis]
+            size = inputs.size()
         self.__inputs_size = size
         inputs = inputs.view([-1,self.m])
-        self.register_buffer('inputs',inputs.data)
+        self._inputs = inputs.data
         flat_indices, points_shift = _fix_inputs(inputs, self.m, self.d, \
-                mesh_bound, mesh_size, Variable(self.ele2coe))
+                self.mesh_bound, self.mesh_size, Variable(self.ele2coe))
         self.__flat_indices = flat_indices.data
-        self.register_buffer('points_shift', points_shift.data)
+        self.points_shift = points_shift.data
         base = _base(points_shift, self.m, self.d)
-        self.register_buffer('base', base.data)
+        self.base = base.data
 
+    @property
+    def inputs(self):
+        return self._inputs
+    @inputs.setter
+    def inputs(self, v):
+        self.update_inputs(v)
     @property
     def flat_indices(self):
         if self.interp_coe.data.is_cuda:
@@ -128,10 +153,10 @@ class LagrangeInterpFixInputs(LagrangeInterp):
         return self.__inputs_size
 
     def forward(self):
-        return lagrangeinterp(Variable(self.inputs), self.interp_coe, 
+        return lagrangeinterp(Variable(self._inputs), self.interp_coe, 
                 self.m, self.d, self.mesh_bound, self.mesh_size, 
                 ele2coe=Variable(self.ele2coe), fix_inputs=True, 
                 flat_indices=Variable(self.flat_indices), 
                 points_shift=Variable(self.points_shift), 
-                base=Variable(self.base)).view(self.inputs_size[:-1])
+                base=Variable(self.base)).view(self.__inputs_size[:-1])
 

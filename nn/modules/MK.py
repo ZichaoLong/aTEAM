@@ -73,18 +73,34 @@ class _MK(nn.Module):
         pass
 
 class M2K(_MK):
+    """
+    convert moment matrix to convolution kernel
+    Arguments:
+        shape (tuple of int): kernel shape
+    """
     def __init__(self, shape):
         super(M2K, self).__init__(shape)
     def forward(self, m):
+        """
+        m (Variable): torch.size=[...,*self.shape]
+        """
         sizem = m.size()
         m = self._packdim(m)
         m = _apply_axis_left_dot(m, self.invM)
         m = m.view(sizem)
         return m
 class K2M(_MK):
+    """
+    convert convolution kernel to moment matrix
+    Arguments:
+        shape (tuple of int): kernel shape
+    """
     def __init__(self, shape):
         super(K2M, self).__init__(shape)
     def forward(self, k):
+        """
+        k (Variable): torch.size=[...,*self.shape]
+        """
         sizek = k.size()
         k = self._packdim(k)
         k = _apply_axis_left_dot(k, self.M)
