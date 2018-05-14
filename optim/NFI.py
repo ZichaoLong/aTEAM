@@ -14,9 +14,9 @@ class NumpyFuncitonInterface(ParamGroupsManager):
            as Numpy functions. 
 
     .. warning::
-    If you are going to change options of one of self.param_groups,
-        please use self.set_options. This is because, for example, 
-        any changes on 'grad_proj's will have impact on self.fprime(x), 
+    If you are going to change options of one of self.param_groups with 
+        always_refresh=False, please use self.set_options. This is because, for 
+        example, any changes on 'grad_proj's will have impact on self.fprime(x), 
         even for the same input x; so do 'isfrozen's, 'x_proj's. So do changes 
         on 'x_proj's, 'isfrozen's.
 
@@ -43,17 +43,25 @@ class NumpyFuncitonInterface(ParamGroupsManager):
             It is similar to nn.module.register_backward_hook(grad_proj).
             grad_proj(param_group['params']) should project gradients of 
             param_group['params'] to the constrained linear space if needed.
+        always_refresh (bool): If always_refresh=True, then any changes on 
+            forward & backward procedure is OK. We recommand you to set 
+            always_refresh=True unless you are familiar with 
+            :class:`NumpyFuncitonInterface`.
+            When always_refresh=False, NumpyFuncitonInterface will cache 
+            parameters for fast forward & backward.
         **kw (keyword args): other options for parameter groups
     """
 
     def __init__(self, params, forward, *, 
-            isfrozen=False, x_proj=None, grad_proj=None, **kw):
+            isfrozen=False, x_proj=None, grad_proj=None, always_refresh=True, 
+            **kw):
         defaults = dict(isfrozen=isfrozen, 
                 x_proj=x_proj, grad_proj=grad_proj, **kw)
         super(NumpyFuncitonInterface, self).__init__(params, defaults)
         self.dtype = next(self.params).data.cpu().numpy().dtype
         self._forward = forward
         self.options_refresh()
+        self.always_refresh = always_refresh
 
     def options_refresh(self):
         """
@@ -172,6 +180,8 @@ class NumpyFuncitonInterface(ParamGroupsManager):
         """
         self.f(x) depends on self.flat_param and self.forward
         """
+        if self.always_refresh:
+            self.options_refresh()
         self.flat_param = x
         _x_cache = self.flat_param
         if self._loss is None or not np.array_equal(_x_cache, self._x_cache):
