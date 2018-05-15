@@ -6,9 +6,9 @@ import numpy as np
 
 from .PGManager import ParamGroupsManager
 
-__all__ = ['NumpyFuncitonInterface',]
+__all__ = ['NumpyFunctionInterface',]
 
-class NumpyFuncitonInterface(ParamGroupsManager):
+class NumpyFunctionInterface(ParamGroupsManager):
     """
     Interfaces class for representing torch forward & backward procedures 
            as Numpy functions. 
@@ -46,8 +46,8 @@ class NumpyFuncitonInterface(ParamGroupsManager):
         always_refresh (bool): If always_refresh=True, then any changes on 
             forward & backward procedure is OK. We recommand you to set 
             always_refresh=True unless you are familiar with 
-            :class:`NumpyFuncitonInterface`.
-            When always_refresh=False, NumpyFuncitonInterface will cache 
+            :class:`NumpyFunctionInterface`.
+            When always_refresh=False, NumpyFunctionInterface will cache 
             parameters for fast forward & backward.
         **kw (keyword args): other options for parameter groups
     """
@@ -57,7 +57,7 @@ class NumpyFuncitonInterface(ParamGroupsManager):
             **kw):
         defaults = dict(isfrozen=isfrozen, 
                 x_proj=x_proj, grad_proj=grad_proj, **kw)
-        super(NumpyFuncitonInterface, self).__init__(params, defaults)
+        super(NumpyFunctionInterface, self).__init__(params, defaults)
         self.dtype = next(self.params).data.cpu().numpy().dtype
         self._forward = forward
         self.options_refresh()
@@ -89,13 +89,13 @@ class NumpyFuncitonInterface(ParamGroupsManager):
         A safe way to update idx_th param_group's options.
         """
         self.param_groups[idx].update(**kw)
-        NumpyFuncitonInterface._proj_check(self.param_groups[idx])
+        NumpyFunctionInterface._proj_check(self.param_groups[idx])
         self.options_refresh()
     def add_param_group(self, param_group):
-        super(NumpyFuncitonInterface, self).add_param_group(param_group)
+        super(NumpyFunctionInterface, self).add_param_group(param_group)
         param_group_tmp = self.param_groups[-1]
         # check consistency of x_proj,grad_proj,isfrozen
-        NumpyFuncitonInterface._proj_check(param_group_tmp)
+        NumpyFunctionInterface._proj_check(param_group_tmp)
         # check is_leaf,requires_grad
         for _,p in param_group_tmp['params'].items():
             if not p.is_leaf:
@@ -109,7 +109,7 @@ class NumpyFuncitonInterface(ParamGroupsManager):
     def forward(self):
         """
         A safe way to get access of self._forward.
-        When you use property NumpyFuncitonInterface.forward, I expect you are 
+        When you use property NumpyFunctionInterface.forward, I expect you are 
         going to do some modifications on self._forward, like: 
             self.forward.property = value
         in this case, we should call self.options_refresh() to keep self.f and 
@@ -176,7 +176,7 @@ class NumpyFuncitonInterface(ParamGroupsManager):
             views.append(view)
         return torch.cat(views, 0).numpy()
 
-    def f(self, x):
+    def f(self, x, *args, **kw):
         """
         self.f(x) depends on self.flat_param and self.forward
         """
@@ -189,13 +189,16 @@ class NumpyFuncitonInterface(ParamGroupsManager):
             self._loss = self._forward()
             self._need_backward = True
         return self._loss.data[0]
-    def fprime(self, x):
+    def fprime(self, x, always_double=True, *args, **kw):
         self.f(x)
         if self._need_backward:
             self.zero_grad()
             self._loss.backward()
             self._grad_cache = self._flat_grad()
         self._need_backward = False
-        return self._grad_cache
+        if always_double:
+            return self._grad_cache.astype(np.float64)
+        else:
+            return self._grad_cache
 
 

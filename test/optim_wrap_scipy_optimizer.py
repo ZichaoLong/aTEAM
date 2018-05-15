@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
-from amator.optim import NumpyFuncitonInterface,ParamGroupsManager
+from amator.optim import NumpyFunctionInterface,ParamGroupsManager
 #%%
 device1 = -1
 device2 = -1
@@ -54,7 +54,7 @@ def powell_bs(x):
     return (1e4*x[0]*x[1]-1)**2+((-x[0]).exp()+(-x[1]).exp()-1.0001)**2
 #%% Penalty
 penalty = Penalty(100,1e-5)
-nfi = NumpyFuncitonInterface(
+nfi = NumpyFunctionInterface(
         [{'params':[penalty.x1,]},
             {'params':[penalty.x2,]}],
         penalty.forward)
@@ -63,7 +63,7 @@ x,f,d = lbfgsb(nfi.f,x0,nfi.fprime,m=100,factr=1,pgtol=1e-14,iprint=10)
 out,fx,its,imode,smode = slsqp(nfi.f,x0,fprime=nfi.fprime,acc=1e-16,iter=15000,iprint=1,full_output=True)
 #%% Trignometric
 trig = Trignometric(100)
-nfi = NumpyFuncitonInterface(trig.parameters(),trig.forward)
+nfi = NumpyFunctionInterface(trig.parameters(),trig.forward)
 x0 = trig.x.data.clone().numpy()
 x,f,d = lbfgsb(nfi.f,x0,nfi.fprime,m=100,factr=1,pgtol=1e-14,iprint=10)
 out,fx,its,imode,smode = slsqp(nfi.f,x0,fprime=nfi.fprime,acc=1e-16,iter=15000,iprint=1,full_output=True)
@@ -75,7 +75,7 @@ class BIGGS_EXP(object):
     def __call__(self):
         return biggs_exp6(self.x,self.m)
 forward = BIGGS_EXP(Variable(torch.DoubleTensor([1,2,1,1,1,1]),requires_grad=True),6)
-nfi = NumpyFuncitonInterface([forward.x,],forward=forward)
+nfi = NumpyFunctionInterface([forward.x,],forward=forward)
 x0 = forward.x.data.clone().numpy()
 xopt = array([1,10,1,5,4,3])
 x1 = xopt+1e-2*random.randn(6)
@@ -88,7 +88,7 @@ out,fx,its,imode,smode = slsqp(nfi.f,x0,fprime=nfi.fprime,acc=1e-16,iter=15000,i
 nfix = Variable(torch.DoubleTensor([0,1]),requires_grad=True)
 def forward():
     return powell_bs(nfix)
-nfi = NumpyFuncitonInterface([nfix,],forward=forward)
+nfi = NumpyFunctionInterface([nfix,],forward=forward)
 x0 = array([0,1])
 x,f,d = lbfgsb(nfi.f,x0,nfi.fprime,m=100,factr=1,pgtol=1e-14,iprint=10)
 out,fx,its,imode,smode = slsqp(nfi.f,x0,fprime=nfi.fprime,acc=1e-16,iter=15000,iprint=1,full_output=True)

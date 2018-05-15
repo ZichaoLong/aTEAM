@@ -8,7 +8,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 import torch.nn as nn
 import torch.nn.functional as F
-from amator.optim import ParamGroupsManager,NumpyFuncitonInterface
+from amator.optim import ParamGroupsManager,NumpyFunctionInterface
 #%%
 device0 = -1
 device1 = -1
@@ -62,7 +62,7 @@ forward = forward_gen()
 param_group0 = {'params':{'w':net.weight0,'b':net.bias0}}
 param_group1 = {'params':{'w':net.weight1,'b':net.bias1}}
 param_group2 = {'params':iter([net.weight2,net.bias2])}
-nfi = NumpyFuncitonInterface([param_group0,param_group1], forward=forward)
+nfi = NumpyFunctionInterface([param_group0,param_group1], forward=forward)
 a0 = random.randn(1000).astype(dtype=np.float32)
 def test():
     a = a0[:nfi.numel()].copy()

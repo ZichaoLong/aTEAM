@@ -3,7 +3,7 @@
 provides a numpy function interface.
 """
 from .PGManager import ParamGroupsManager
-from .NFI import NumpyFuncitonInterface
+from .NFI import NumpyFunctionInterface
 
 del PGManager
 del NFI

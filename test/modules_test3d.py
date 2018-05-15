@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
 import matplotlib.pyplot as plt
-from amator.optim import NumpyFuncitonInterface,ParamGroupsManager
+from amator.optim import NumpyFunctionInterface,ParamGroupsManager
 from amator.nn.modules import LagrangeInterp,LagrangeInterpFixInputs
 from amator.utils import meshgen
 #%%
@@ -65,7 +65,7 @@ for i in range(IN):
             indx[idx] = array([i,j,k])*array(inputs_shape)
             idx += 1
 #%%
-nfi = NumpyFuncitonInterface([I.interp_coe,],forward=lambda :forward(I,dataset))
+nfi = NumpyFunctionInterface([I.interp_coe,],forward=lambda :forward(I,dataset))
 nfi.flat_param = random.randn(nfi.numel())
 x0 = nfi.flat_param
 for i in range(64):
@@ -85,7 +85,7 @@ outputs_true = outputs_true.view(outputs.size())
 outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
 outputs_true = Variable(outputs_true)
 
-nfi = NumpyFuncitonInterface([IFixInputs.interp_coe,],forward=lambda :forwardFixInputs(IFixInputs,outputs_true))
+nfi = NumpyFunctionInterface([IFixInputs.interp_coe,],forward=lambda :forwardFixInputs(IFixInputs,outputs_true))
 nfi.flat_param = random.randn(nfi.numel())
 for i in range(64):
     inputs = dataset[

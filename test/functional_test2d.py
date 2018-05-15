@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
 import matplotlib.pyplot as plt
-from amator.optim import NumpyFuncitonInterface,ParamGroupsManager
+from amator.optim import NumpyFunctionInterface,ParamGroupsManager
 from amator.nn.functional import lagrangeinterp
 from amator.utils import meshgen
 #%%
@@ -68,7 +68,7 @@ dataset = Variable(dataset)
 ax = plt.figure().add_subplot(1,1,1)
 ax.imshow(I.infe(dataset).data.cpu().numpy())
 #%%
-nfi = NumpyFuncitonInterface([I.interp_coe,],forward=lambda :I.forward(dataset))
+nfi = NumpyFunctionInterface([I.interp_coe,],forward=lambda :I.forward(dataset))
 nfi.flat_param = random.randn(nfi.numel())
 x,f,d = lbfgsb(nfi.f,nfi.flat_param,nfi.fprime,m=1000,factr=1,pgtol=1e-14,iprint=10)
 infe,infe_true = compare(I, dataset)

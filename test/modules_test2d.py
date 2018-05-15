@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
 import matplotlib.pyplot as plt
-from amator.optim import NumpyFuncitonInterface,ParamGroupsManager
+from amator.optim import NumpyFunctionInterface,ParamGroupsManager
 from amator.nn.modules import LagrangeInterp,LagrangeInterpFixInputs
 from amator.utils import meshgen
 #%%
@@ -57,7 +57,7 @@ if device>=0:
 ax = plt.figure().add_subplot(1,1,1)
 ax.imshow(I(dataset).data.cpu().numpy())
 #%%
-nfi = NumpyFuncitonInterface([I.interp_coe,],forward=lambda :forward(I,dataset))
+nfi = NumpyFunctionInterface([I.interp_coe,],forward=lambda :forward(I,dataset))
 nfi.flat_param = random.randn(nfi.numel())
 x,f,d = lbfgsb(nfi.f,nfi.flat_param,nfi.fprime,m=1000,factr=1,pgtol=1e-14,iprint=10)
 infe,infe_true = compare(I, dataset)
@@ -72,7 +72,7 @@ outputs_true = torch.from_numpy(testfunc(IFixInputs.inputs.cpu().numpy()))
 outputs_true = outputs_true.view(outputs.size())
 outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
 outputs_true = Variable(outputs_true)
-nfi = NumpyFuncitonInterface(IFixInputs.parameters(), forward=lambda :forwardFixInputs(IFixInputs, outputs_true))
+nfi = NumpyFunctionInterface(IFixInputs.parameters(), forward=lambda :forwardFixInputs(IFixInputs, outputs_true))
 nfi.flat_param = random.randn(nfi.numel())
 x,f,d = lbfgsb(nfi.f,nfi.flat_param,nfi.fprime,m=1000,factr=1,pgtol=1e-14,iprint=10)
 infe = IFixInputs().data.cpu().numpy()

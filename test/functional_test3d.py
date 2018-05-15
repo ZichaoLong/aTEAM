@@ -11,7 +11,7 @@ from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
 import matplotlib.pyplot as plt
-from amator.optim import NumpyFuncitonInterface,ParamGroupsManager
+from amator.optim import NumpyFunctionInterface,ParamGroupsManager
 from amator.nn.functional import lagrangeinterp
 from amator.utils import meshgen
 #%%
@@ -66,7 +66,7 @@ dataset = meshgen(mesh_bound, [201,201,201])
 dataset = torch.from_numpy(dataset).clone()
 dataset = I.interp_coe.data.new(dataset.size()).copy_(dataset)
 dataset = Variable(dataset)
-nfi = NumpyFuncitonInterface([I.interp_coe,],forward=lambda :I.forward(dataset))
+nfi = NumpyFunctionInterface([I.interp_coe,],forward=lambda :I.forward(dataset))
 nfi.flat_param = random.randn(nfi.numel())
 x0 = nfi.flat_param
 #%%
