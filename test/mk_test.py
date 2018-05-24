@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+test for nn/modules/MK.py
+"""
 #%%
 from numpy import *
 import numpy as np
@@ -8,9 +9,9 @@ from torch.autograd import Variable,grad
 import torch.nn as nn
 from torch.nn import functional as F
 import matplotlib.pyplot as plt
-import amator.nn
-from amator.nn.modules import M2K,K2M
-from amator.utils import switch_moment_filter, diff_monomial_coe
+import aTEAM.nn
+from aTEAM.nn.modules import M2K,K2M
+from aTEAM.utils import switch_moment_filter, diff_monomial_coe
 #%%
 shape = [7,3,5]
 m2k = M2K(shape)

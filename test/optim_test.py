@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+test for nn/optim/PGManager.py,NFI.py
+"""
 #%%
 from numpy import *
 import numpy as np
@@ -8,7 +9,7 @@ from torch.autograd import Variable
 from collections import OrderedDict
 import torch.nn as nn
 import torch.nn.functional as F
-from amator.optim import ParamGroupsManager,NumpyFunctionInterface
+from aTEAM.optim import ParamGroupsManager,NumpyFunctionInterface
 #%%
 device0 = -1
 device1 = -1

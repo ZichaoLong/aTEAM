@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+2d example for lagrangeinterp (nn.functional.interpolation)
+"""
 #%%
 from numpy import *
 import numpy as np
@@ -10,9 +11,9 @@ from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
 import matplotlib.pyplot as plt
-from amator.optim import NumpyFunctionInterface,ParamGroupsManager
-from amator.nn.functional import lagrangeinterp
-from amator.utils import meshgen
+from aTEAM.optim import NumpyFunctionInterface,ParamGroupsManager
+from aTEAM.nn.functional import lagrangeinterp
+from aTEAM.utils import meshgen
 #%%
 def testfunc(inputs):
     """inputs (ndarray)"""

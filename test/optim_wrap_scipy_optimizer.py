@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+test for nn/optim/PGManager.py,NFI.py
+"""
 #%%
 from numpy import *
 import numpy as np
@@ -9,7 +10,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
 from scipy.optimize.slsqp import fmin_slsqp as slsqp
-from amator.optim import NumpyFunctionInterface,ParamGroupsManager
+from aTEAM.optim import NumpyFunctionInterface,ParamGroupsManager
 #%%
 device1 = -1
 device2 = -1
