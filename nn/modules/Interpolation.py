@@ -126,7 +126,7 @@ class LagrangeInterpFixInputs(LagrangeInterp):
             size = inputs.size()
         self.__inputs_size = size
         inputs = inputs.view([-1,self.m])
-        self._inputs = inputs.data
+        self._inputs = inputs.data.view(size)
         flat_indices, points_shift = _fix_inputs(inputs, self.m, self.d, \
                 self.mesh_bound, self.mesh_size, Variable(self.ele2coe))
         self.__flat_indices = flat_indices.data
@@ -153,7 +153,7 @@ class LagrangeInterpFixInputs(LagrangeInterp):
         return self.__inputs_size
 
     def forward(self):
-        return lagrangeinterp(Variable(self._inputs), self.interp_coe, 
+        return lagrangeinterp(Variable(self._inputs.view([-1,self.m])), self.interp_coe, 
                 self.m, self.d, self.mesh_bound, self.mesh_size, 
                 ele2coe=Variable(self.ele2coe), fix_inputs=True, 
                 flat_indices=Variable(self.flat_indices), 
