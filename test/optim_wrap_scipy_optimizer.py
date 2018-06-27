@@ -5,7 +5,7 @@ test for nn/optim/PGManager.py,NFI.py
 from numpy import *
 import numpy as np
 import torch
-from torch.autograd import Variable,grad
+from torch.autograd import grad
 import torch.nn as nn
 from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
@@ -18,8 +18,8 @@ class Penalty(nn.Module):
     def __init__(self,n,alpha=1e-5):
         super(Penalty,self).__init__()
         m = n//2
-        x1 = torch.arange(1,m+1).type(torch.DoubleTensor)
-        x2 = torch.arange(m+1,n+1).type(torch.DoubleTensor)
+        x1 = torch.arange(1,m+1).to(torch.float64)
+        x2 = torch.arange(m+1,n+1).to(torch.float64)
         if device1>=0:
             x1 = x1.cuda(device1)
         if device2>=0:
@@ -34,7 +34,7 @@ class Penalty(nn.Module):
 class Trignometric(nn.Module):
     def __init__(self,n):
         super(Trignometric,self).__init__()
-        self.x = nn.Parameter(torch.DoubleTensor(n).fill_(1/n))
+        self.x = nn.Parameter(torch.zeros(n, dtype=torch.float64).fill_(1/n))
         self.n = n
     def forward(self):
         n = self.n
@@ -42,9 +42,9 @@ class Trignometric(nn.Module):
         y = x.cos()
         z = x.sin()
         s = n-y.sum()
-        return ((s+Variable(torch.arange(1,n+1).type(torch.DoubleTensor))*(1-y)-z)**2).sum()
+        return ((s+torch.arange(1,n+1).to(torch.float64)*(1-y)-z)**2).sum()
 def biggs_exp6(x,m=6):
-    t = Variable(torch.arange(1,m+1).type(torch.DoubleTensor))
+    t = torch.arange(1,m+1).to(torch.float64)
     y = (-t).exp()-5*(-10*t).exp()+3*(-4*t).exp()
     te1 = (-x[0]*t).exp()
     te2 = (-x[1]*t).exp()
@@ -75,7 +75,7 @@ class BIGGS_EXP(object):
         self.m = m
     def __call__(self):
         return biggs_exp6(self.x,self.m)
-forward = BIGGS_EXP(Variable(torch.DoubleTensor([1,2,1,1,1,1]),requires_grad=True),6)
+forward = BIGGS_EXP(torch.tensor([1,2,1,1,1,1],dtype=torch.float64,requires_grad=True),6)
 nfi = NumpyFunctionInterface([forward.x,],forward=forward)
 x0 = forward.x.data.clone().numpy()
 xopt = array([1,10,1,5,4,3])
@@ -86,7 +86,7 @@ nfi.forward.m = 13
 x,f,d = lbfgsb(nfi.f,x0,nfi.fprime,m=100,factr=1,pgtol=1e-14,iprint=10)
 out,fx,its,imode,smode = slsqp(nfi.f,x0,fprime=nfi.fprime,acc=1e-16,iter=15000,iprint=1,full_output=True)
 #%%
-nfix = Variable(torch.DoubleTensor([0,1]),requires_grad=True)
+nfix = torch.tensor([0,1], dtype=torch.float64, requires_grad=True)
 def forward():
     return powell_bs(nfix)
 nfi = NumpyFunctionInterface([nfix,],forward=forward)

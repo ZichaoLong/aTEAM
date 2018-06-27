@@ -1,6 +1,5 @@
 """torch parameter groups manager"""
 import torch
-from torch.autograd import Variable
 from collections import OrderedDict,Iterator
 
 __all__ = ['ParamGroupsManager',]
@@ -10,7 +9,7 @@ class ParamGroupsManager(object):
     which contains a (key='params', value=an OrderedDict of parameters) pair.
     For additional information corresponding to the parameter group, any other 
     keys are OK. e.g.
-    param_group = dict(params=OrderedDict([(name1,Variables),...]),key1=True)
+    param_group = dict(params=OrderedDict([(name1,tensor),...]),key1=True)
 
     .. note:: 
     :class:`ParamGroupsManager` is similar to :class:`Optimizer.param_groups`. 
@@ -21,7 +20,7 @@ class ParamGroupsManager(object):
             param_group['params'] = a list of parameters
 
     Arguments:
-        params (iterable): params specifies what Variables should be managed, 
+        params (iterable): params specifies what tensors should be managed, 
             Either should params pass `ParamGroupsManager.is_params` or every 
             element of params should pass `ParamGroupsManager.is_param_group`. 
             See ParamGroupsManager.is_params?,
@@ -69,7 +68,7 @@ class ParamGroupsManager(object):
     def _pack_params(p):
         if isinstance(p,Iterator):
             p = list(p)
-        if isinstance(next(iter(p)), Variable):
+        if isinstance(next(iter(p)), torch.Tensor):
             p = enumerate(p)
         p = OrderedDict(p)
         return p
@@ -77,7 +76,7 @@ class ParamGroupsManager(object):
     def is_params(params):
         """
         Verify whether params is an iterable of parmeters.
-        An iterable of (name, :class:`Variable`) pairs or :class:`Variable` s 
+        An iterable of (name, :class:`torch.Tensor`) pairs or :class:`torch.Tensor` s 
         will pass this judgement function. So does named Variables dict.
 
         Example:
@@ -94,9 +93,9 @@ class ParamGroupsManager(object):
             (False,OrderedDict([(0,...),(1,...)])) # split model.weight.data
         """
         try:
-            if isinstance(params, Variable):
-                # in some case, people unconsciously pass a Variable in, 
-                # which is also a iterable of Variable when size>1.
+            if isinstance(params, torch.Tensor):
+                # in some case, people unconsciously pass a tensor in, 
+                # which is also a iterable of tensor when size>1.
                 params = [params,]
             if isinstance(params, Iterator):
                 # an Iterator can use only once
@@ -104,12 +103,12 @@ class ParamGroupsManager(object):
             assert len(list(params))>0, "got empty params"
             if not isinstance(params, dict):
                 params = list(params)
-                if isinstance(params[0], Variable):
-                    b = all(map(lambda v:isinstance(v, Variable), params))
-                else: # expect to be a list of (name, :class:`Variable`) pairs
+                if isinstance(params[0], torch.Tensor):
+                    b = all(map(lambda v:isinstance(v, torch.Tensor), params))
+                else: # expect to be a list of (name, :class:`torch.Tensor`) pairs
                     params = dict(params)
             if isinstance(params, dict):
-                b = all(map(lambda v:isinstance(v[1], Variable), params.items()))
+                b = all(map(lambda v:isinstance(v[1], torch.Tensor), params.items()))
             assert b
             return True,ParamGroupsManager._pack_params(params)
         except:
@@ -185,16 +184,11 @@ class ParamGroupsManager(object):
     # zero_grad
     def zero_grad(self):
         """
-        Clears the gradients of all managed :class:`Variable` s.
+        Clears the gradients of all managed :class:`torch.Tensor` s.
         The code is almost simply copied from torch.optim.optimizer.
         """
         for p in self.params:
-            if p.grad is None:
-                continue
-            # what if I simply do p.grad.data.zero_()
-            if p.grad.volatile:
-                p.grad.data.zero_()
-            else: 
-                data = p.grad.data
-                p.grad = Variable(data.new().resize_as_(data).zero_())
+            if p.grad is not None:
+                p.grad.detach_()
+                p.grad.zero_()
 
