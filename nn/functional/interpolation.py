@@ -2,7 +2,6 @@
 import numpy as np
 from numpy import *
 import torch
-from torch.autograd import Variable
 import torch.nn.functional as F
 from scipy.misc import factorial
 
@@ -41,7 +40,7 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
         mesh_bound, mesh_size, ele2coe):
     """
     Arguments:
-        inputs (Variable): DoubleTensor (cuda) or FloatTensor (cuda). 
+        inputs (Tensor): DoubleTensor (cuda) or FloatTensor (cuda). 
             torch.size=[N,m], where N is the number of points which will be 
             interpolated, m is the spatial dimension.
         interp_dim (int): spatial dimension, m=interp_dim
@@ -50,10 +49,10 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
             defines the interpolation domain.
         mesh_size (ndarray): dtype=int, shape=[m,]. mesh_size defines the 
             grid number of piecewise interpolation.
-        ele2coe (Variable): see lagrangeinterp.
+        ele2coe (Tensor): see lagrangeinterp.
     Returns:
-        flat_indices (Variable)
-        points_shift (Variable)
+        flat_indices (Tensor)
+        points_shift (Tensor)
     """
     N = inputs.size()[0]
     m = interp_dim
@@ -61,19 +60,15 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
 
     mesh_bound = torch.from_numpy(mesh_bound)
     mesh_bound = inputs.data.new(mesh_bound.size()).copy_(mesh_bound)
-    mesh_bound = Variable(mesh_bound)
     mesh_size = torch.from_numpy(mesh_size)
     mesh_size = inputs.data.new().long().new(mesh_size.size()).copy_(mesh_size)
-    mesh_size = Variable(mesh_size)
     inputs = torch.max(inputs, mesh_bound[newaxis,0,:])
     inputs = torch.min(inputs, mesh_bound[newaxis,1,:])
     mesh_delta = (mesh_bound[1]-mesh_bound[0])/mesh_size.type_as(mesh_bound)
     points_shift = (inputs-mesh_bound[newaxis,0,:])/mesh_delta[newaxis]
-    # disable gradient on element_indices
-    element_indices = Variable(torch.floor(points_shift.data))
-    # if hold you want to hold gradient for element_indices, please do
-    # element_indices = torch.floor(points_shift)
-    # instead.
+
+    element_indices = torch.floor(points_shift.data)
+
     element_indices = F.relu(element_indices)
     supindices = mesh_size[newaxis,:].type_as(mesh_bound)-1
     element_indices = supindices-F.relu(supindices-element_indices)
@@ -87,7 +82,6 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
     # interp_coe_indices.size(): [N,]+[d+1,...,d+1]+[m,]
     interp_coe_indices = interp_coe_indices.view([-1,m])
     flat_indices = element_indices.data.new(N*(d+1)**m).zero_()
-    flat_indices = Variable(flat_indices)
     base = 1
     for i in range(m-1,-1,-1):
         flat_indices += interp_coe_indices[:,i]*base
@@ -97,13 +91,13 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
 def _base(points_shift, interp_dim, interp_degree):
     """
     Arguments:
-        points_shift (Variable): DoubleTensor (cuda) or FloatTensor (cuda). 
+        points_shift (Tensor): DoubleTensor (cuda) or FloatTensor (cuda). 
             torch.size=[N,m], where N is the number of points which will be 
             interpolated, m is the spatial dimension.
         interp_dim (int): spatial dimension, m=interp_dim
         interp_degree (int): degree of Lagrange Interpolation Polynomial
     Returns:
-        base (Variable)
+        base (Tensor)
     """
     N = points_shift.size()[0]
     m = interp_dim
@@ -112,7 +106,6 @@ def _base(points_shift, interp_dim, interp_degree):
     base_function = ndarray(shape=[m,d+1],dtype=np.object)
     grid = torch.from_numpy(arange(d+1)/d)[newaxis,:]
     grid = points_shift.data.new(grid.size()).copy_(grid)
-    grid = Variable(grid)
     for i in range(m):
         M = points_shift[:,i,newaxis]-grid
         for j in range(d+1):
@@ -142,11 +135,11 @@ def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree,
     piecewise Lagrange Interpolation in R^m
 
     Arguments:
-        inputs (Variable): DoubleTensor (cuda) or FloatTensor (cuda). 
+        inputs (Tensor): DoubleTensor (cuda) or FloatTensor (cuda). 
             torch.size=[N,m], where N is the number of points which will be 
             interpolated, m is the spatial dimension.
         interp_dim (int): spatial dimension, m=interp_dim
-        interp_coe (Variable): DoubleTensor (cuda) or FloatTensor (cuda).
+        interp_coe (Tensor): DoubleTensor (cuda) or FloatTensor (cuda).
             torch.size(mesh_size*interp_degree+1)
         interp_degree (int): degree of Lagrange Interpolation Polynomial
         mesh_bound (ndarray): dtype=double or float. shape=[2,m]. mesh_bound 
@@ -154,7 +147,7 @@ def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree,
         mesh_size (ndarray): dtype=int, shape=[m,]. mesh_size defines the 
             grid number of piecewise interpolation.
     Returns:
-        outputs (Variable): torch.size=[N,], interpolation value of inputs 
+        outputs (Tensor): torch.size=[N,], interpolation value of inputs 
             using interp_coe.
     """
     inputs = inputs.contiguous()
@@ -166,14 +159,11 @@ def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree,
     mesh_bound = array(mesh_bound).reshape(2,m)
     mesh_size = array(mesh_size).reshape(m)
 
-    assert inputs.is_cuda == interp_coe.is_cuda
-    if inputs.is_cuda:
-        assert inputs.get_device() == interp_coe.get_device()
+    assert inputs.device == interp_coe.device
 
     if ele2coe is None:
         ele2coe = torch.from_numpy(_ele2coe(m, d))
         ele2coe = inputs.data.new().long().new(ele2coe.size()).copy_(ele2coe)
-        ele2coe = Variable(ele2coe)
 
     if not fix_inputs:
         flat_indices, points_shift = _fix_inputs(inputs, m, d, \

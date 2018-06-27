@@ -5,7 +5,7 @@
 from numpy import *
 import numpy as np
 import torch
-from torch.autograd import Variable,grad
+from torch.autograd import grad
 import torch.nn as nn
 from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
@@ -44,7 +44,6 @@ class Interp(nn.Module):
         outputs = self.infe(inputs)
         outputs_true = torch.from_numpy(testfunc(inputs.data.cpu().numpy()))
         outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
-        outputs_true = Variable(outputs_true)
         return ((outputs-outputs_true)**2).mean()
 def compare(I, inputs):
     infe = I.infe(inputs).data.cpu().numpy()
@@ -65,7 +64,6 @@ mesh_bound[1] += 1/1000
 dataset = meshgen(mesh_bound, [1001,1001])
 dataset = torch.from_numpy(dataset)
 dataset = I.interp_coe.data.new(dataset.size()).copy_(dataset)
-dataset = Variable(dataset)
 ax = plt.figure().add_subplot(1,1,1)
 ax.imshow(I.infe(dataset).data.cpu().numpy())
 #%%
@@ -86,7 +84,7 @@ for iii in range(50):
     x,f,d = lbfgsb(nfi.f,nfi.flat_param,nfi.fprime,m=1000,maxiter=10,factr=1,pgtol=1e-14,iprint=10)
 #%%
 inputs = dataset[5::10,5::10].clone()
-print(sqrt(I.forward(inputs).data[0]))
+print(sqrt(I.forward(inputs).item()))
 infe,infe_true = compare(I,inputs)
 plt.figure().add_subplot(111).imshow(infe-infe_true)
 h = plt.figure()
