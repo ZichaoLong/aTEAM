@@ -58,10 +58,8 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
     m = interp_dim
     d = interp_degree
 
-    mesh_bound = torch.from_numpy(mesh_bound)
-    mesh_bound = inputs.data.new(mesh_bound.size()).copy_(mesh_bound)
-    mesh_size = torch.from_numpy(mesh_size)
-    mesh_size = inputs.data.new().long().new(mesh_size.size()).copy_(mesh_size)
+    mesh_bound = torch.from_numpy(mesh_bound).to(inputs)
+    mesh_size = torch.tensor(mesh_size, dtype=torch.int64).to(inputs.device)
     inputs = torch.max(inputs, mesh_bound[newaxis,0,:])
     inputs = torch.min(inputs, mesh_bound[newaxis,1,:])
     mesh_delta = (mesh_bound[1]-mesh_bound[0])/mesh_size.type_as(mesh_bound)
@@ -73,7 +71,7 @@ def _fix_inputs(inputs, interp_dim, interp_degree,
     supindices = mesh_size[newaxis,:].type_as(mesh_bound)-1
     element_indices = supindices-F.relu(supindices-element_indices)
     points_shift = points_shift-element_indices
-    element_indices = element_indices.type_as(mesh_size)
+    element_indices = element_indices.long()
     # element_indices.size(): [N,m], 
     # 0 <= element_indices[i] <= mesh_size-1, i=0,...,N-1
 
@@ -104,8 +102,7 @@ def _base(points_shift, interp_dim, interp_degree):
     d = interp_degree
 
     base_function = ndarray(shape=[m,d+1],dtype=np.object)
-    grid = torch.from_numpy(arange(d+1)/d)[newaxis,:]
-    grid = points_shift.data.new(grid.size()).copy_(grid)
+    grid = torch.from_numpy(arange(d+1)/d)[newaxis,:].to(points_shift)
     for i in range(m):
         M = points_shift[:,i,newaxis]-grid
         for j in range(d+1):
@@ -162,8 +159,7 @@ def lagrangeinterp(inputs, interp_coe, interp_dim, interp_degree,
     assert inputs.device == interp_coe.device
 
     if ele2coe is None:
-        ele2coe = torch.from_numpy(_ele2coe(m, d))
-        ele2coe = inputs.data.new().long().new(ele2coe.size()).copy_(ele2coe)
+        ele2coe = torch.from_numpy(_ele2coe(m, d)).long().to(inputs.device)
 
     if not fix_inputs:
         flat_indices, points_shift = _fix_inputs(inputs, m, d, \

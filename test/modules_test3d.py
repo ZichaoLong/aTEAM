@@ -5,7 +5,7 @@
 from numpy import *
 import numpy as np
 import torch
-from torch.autograd import Variable,grad
+from torch.autograd import grad
 import torch.nn as nn
 from torch.nn import functional as F
 from scipy.optimize.lbfgsb import fmin_l_bfgs_b as lbfgsb
@@ -26,7 +26,6 @@ def forward(I, inputs):
     outputs = I(inputs)
     outputs_true = torch.from_numpy(testfunc(inputs.data.cpu().numpy()))
     outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
-    outputs_true = Variable(outputs_true)
     return ((outputs-outputs_true)**2).mean()
 def forwardFixInputs(IFixInputs, outputs_true):
     outputs = IFixInputs()
@@ -49,7 +48,6 @@ mesh_bound[1] += 1/200
 dataset = meshgen(mesh_bound, [201,201,201])
 dataset = torch.from_numpy(dataset).clone()
 dataset = I.interp_coe.data.new(dataset.size()).copy_(dataset)
-dataset = Variable(dataset)
 mesh_bound[1] -= 1/200
 IFixInputs = LagrangeInterpFixInputs(dataset[:1,:1,:1],m,d,mesh_bound,mesh_size)
 IFixInputs.double()
@@ -84,7 +82,6 @@ outputs = IFixInputs()
 outputs_true = torch.from_numpy(testfunc(IFixInputs.inputs.cpu().numpy()))
 outputs_true = outputs_true.view(outputs.size())
 outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
-outputs_true = Variable(outputs_true)
 
 nfi = NumpyFunctionInterface([IFixInputs.interp_coe,],forward=lambda :forwardFixInputs(IFixInputs,outputs_true))
 nfi.flat_param = random.randn(nfi.numel())
@@ -100,7 +97,6 @@ for i in range(64):
     outputs_true = torch.from_numpy(testfunc(IFixInputs.inputs.cpu().numpy()))
     outputs_true = outputs_true.view(outputs.size())
     outputs_true = outputs.data.new(outputs_true.size()).copy_(outputs_true)
-    outputs_true = Variable(outputs_true)
     nfi.forward = lambda :forwardFixInputs(IFixInputs,outputs_true)
     x = nfi.flat_param
     x,f,d = lbfgsb(nfi.f,nfi.flat_param,nfi.fprime,m=1000,maxiter=20,factr=1,pgtol=1e-14,iprint=10)
