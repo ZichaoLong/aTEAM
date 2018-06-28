@@ -1,14 +1,12 @@
 # aTEAM
 A pyTorch Extension for Applied Mathematics
 
-This version is compatible with pytorch (0.3.1). You can create a conda environment for pytorch0.3.1 if you have a newer pytorch release in your base env:
+This version is compatible with pytorch (0.4.0). You can create a conda environment for pytorch0.4.0:
 ```
-conda create -n torch0.3 python=3 jupyter
-source activate torch0.3
-pip install http://download.pytorch.org/whl/cu90/torch-0.3.1-cp36-cp36m-linux_x86_64.whl
-# change ".../cu90/..." to ".../cpu/..." or ".../cu91/..." if needed
-wget https://github.com/ZichaoLong/aTEAM/archive/v0.1.tar.gz
-tar -xf v0.1.tar.gz
+conda create -n torch0.4 python=3 jupyter
+source activate torch0.4
+conda install pytorch=0.4
+# or conda install pytorch-cpu=0.4
 ```
 
 ## Some code maybe useful to you:
