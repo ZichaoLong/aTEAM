@@ -5,7 +5,7 @@ test for nn/modules/MK.py
 from numpy import *
 import numpy as np
 import torch
-from torch.autograd import Variable,grad
+from torch.autograd import grad
 import torch.nn as nn
 from torch.nn import functional as F
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ from aTEAM.utils import switch_moment_filter, diff_monomial_coe
 shape = [7,3,5]
 m2k = M2K(shape)
 k2m = K2M(shape)
-a = Variable(torch.randn(*([10]+shape)).double())
+a = torch.randn(*([10]+shape)).double()
 npm2k,npk2m,_,_ = switch_moment_filter(shape)
 m2ka = m2k(a).data.cpu().numpy()
 k2ma = k2m(a).data.cpu().numpy()
@@ -33,7 +33,7 @@ print(linalg.norm(npk2ma-k2ma))
 #%%
 shape = [5,7]
 ker = diff_monomial_coe(x_order=2,y_order=1,shape=shape)
-a = Variable(torch.from_numpy(ker).double())
+a = torch.from_numpy(ker).double()
 m2k = M2K(shape)
 k2m = K2M(shape)
 npm2k,npk2m,_,_ = switch_moment_filter(shape)
