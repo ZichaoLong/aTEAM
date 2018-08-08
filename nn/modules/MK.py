@@ -41,7 +41,7 @@ class _MK(nn.Module):
         for l in shape:
             M.append(zeros((l,l)))
             for i in range(l):
-                M[-1][i] = ((arange(l)-l//2)**i)/factorial(i)
+                M[-1][i] = ((arange(l)-(l-1)//2)**i)/factorial(i)
             invM.append(inv(M[-1]))
             self.register_buffer('_M'+str(j), torch.from_numpy(M[-1]))
             self.register_buffer('_invM'+str(j), torch.from_numpy(invM[-1]))
