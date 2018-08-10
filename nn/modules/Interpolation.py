@@ -39,10 +39,14 @@ class LagrangeInterp(nn.Module):
         interp_coe = torch.Tensor(*mesh_size).normal_()
         self.interp_coe = nn.Parameter(interp_coe)
 
-    def init(self, func):
+    def init(self, func, is_numpy_func=False):
         inputs = meshgen(self.mesh_bound, self.mesh_size*self.d, endpoint=True)
-        inputs = torch.from_numpy(inputs).to(self.interp_coe)
-        self.interp_coe.data = func(inputs)
+        if not is_numpy_func:
+            inputs = torch.from_numpy(inputs).to(self.interp_coe)
+            self.interp_coe.data = func(inputs)
+        else:
+            self.interp_coe.data.copy_(torch.from_numpy(func(inputs)))
+        return None
 
     @property
     def m(self):
@@ -95,7 +99,7 @@ class LagrangeInterpFixInputs(LagrangeInterp):
         super(LagrangeInterpFixInputs, self).__init__(interp_dim, 
                 interp_degree, mesh_bound, mesh_size)
         assert isinstance(inputs, torch.Tensor)
-        self.to(inputs.dtype, inputs.device)
+        self.to(dtype=inputs.dtype, device=inputs.device)
         self.register_buffer('_inputs',inputs.new(1))
         self.register_buffer('flat_indices', inputs.new(1).long())
         self.register_buffer('points_shift', inputs.new(1))
