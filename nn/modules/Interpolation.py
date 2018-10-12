@@ -107,6 +107,7 @@ class LagrangeInterpFixInputs(LagrangeInterp):
         self.update_inputs(inputs)
 
     def update_inputs(self, inputs):
+        inputs = inputs.clone()
         inputs.data = inputs.data.to(self._inputs.device)
         inputs.data = inputs.data.contiguous()
         size = inputs.size()
