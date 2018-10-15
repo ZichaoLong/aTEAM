@@ -3,13 +3,14 @@ import numpy as np
 from numpy import *
 from numpy.linalg import *
 from functools import reduce
+from scipy.special import factorial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from . import MK
 from ..functional import periodicpad
 
-__all__ = ['FDMK','FD1d','FD2d','FD3d']
+__all__ = ['FDMK','FD1d','FD2d','FD3d','FDProj']
 
 def _inv_equal_order_m(d,m):
     A = []
@@ -212,3 +213,61 @@ class FD3d(_FDNd):
                 dx=dx, constraint=constraint, boundary=boundary)
         self.conv = F.conv3d
 
+class FDProj(nn.Module):
+    """
+    project convolution kernel to finite difference coefficient
+    """
+    def __init__(self, kernel_size, order, acc=1):
+        super(FDProj, self).__init__()
+        assert sum(order)<min(kernel_size)
+        self.dim = len(kernel_size)
+        self.n = 1
+        for i in kernel_size:
+            self.n *= i
+        self.order = order
+        self.m = sum(order)
+        m = self.m+acc-1
+        self._order_bank = _less_order_m(self.dim, m)
+        s = [1,]*self.dim
+        base = []
+        for i in range(self.dim):
+            b = torch.arange(kernel_size[i], dtype=torch.float64)-(kernel_size[i]-1)//2
+            s[i] = -1
+            b = b.view(*s)
+            s[i] = 1
+            base.append(b)
+        subspaces = []
+        for j in range(m+1):
+            for o in self._order_bank[j]:
+                b = torch.ones(*kernel_size, dtype=torch.float64)
+                for i in range(self.dim):
+                    if o[i]>0:
+                        b *= base[i]**o[i]
+                b = b.view(-1)
+                if tuple(o) == tuple(order):
+                    subspaces.insert(0,b)
+                    continue
+                subspaces.append(b)
+        subspaces.reverse()
+        l = len(subspaces)
+        # Schimidt orthogonalization
+        for i in range(l):
+            for j in range(i):
+                subspaces[i] -= torch.dot(subspaces[j], subspaces[i])*subspaces[j]
+            subspaces[i] = subspaces[i]/torch.sqrt(torch.dot(subspaces[i], subspaces[i]))
+        subspace = torch.stack(subspaces, dim=0)
+        self.register_buffer('subspace', subspace)
+        moment = torch.ones(*kernel_size, dtype=torch.float64)
+        for i in range(self.dim):
+            if order[i]>0:
+                moment *= base[i]**order[i]/factorial(order[i]).item()
+        moment = moment.view(-1)
+        self.register_buffer('_renorm', 1/torch.dot(moment,subspace[-1]))
+    def forward(self, kernel):
+        shape = kernel.shape
+        kernel = kernel.contiguous()
+        kernel = kernel.view(-1,self.n)
+        kernel = kernel-kernel@self.subspace.transpose(0,1)@self.subspace
+        kernel = kernel+self._renorm*self.subspace[-1:]
+        kernel = kernel.view(shape)
+        return kernel

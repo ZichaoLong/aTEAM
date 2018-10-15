@@ -3,7 +3,7 @@ import numpy as np
 from numpy import *
 import torch
 import torch.nn.functional as F
-from scipy.misc import factorial
+from scipy.special import factorial
 
 __all__ = ['lagrangeinterp',]
 

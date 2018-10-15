@@ -1,7 +1,7 @@
 """Moment(sum rules) and Kernel(convolution kernel) convertor"""
 from numpy import *
 from numpy.linalg import *
-from scipy.misc import factorial
+from scipy.special import factorial
 from functools import reduce
 import torch
 import torch.nn as nn
