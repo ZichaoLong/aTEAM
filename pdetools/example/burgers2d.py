@@ -35,10 +35,9 @@ class BurgersTime2d(nn.Module, TimeStepper):
     def __init__(self, max_dt, mesh_size, mesh_bound=((0,0),(1,1)), viscosity=0.01, timescheme='rk2', spatialscheme='uw2', force=None):
         super(BurgersTime2d, self).__init__()
         self.max_dt = max_dt
-        self.mesh_size = list(mesh_size)
-        self.mesh_bound = mesh_bound
-        dx0 = (mesh_bound[1][0]-mesh_bound[0][0])/self.mesh_size[0]
-        dx1 = (mesh_bound[1][1]-mesh_bound[0][1])/self.mesh_size[1]
+        self.mesh_size = np.array(mesh_size).copy()
+        self.mesh_bound = np.array(mesh_bound).copy()
+        dx0,dx1 = (self.mesh_bound[1]-self.mesh_bound[0])/self.mesh_size
         assert abs(dx0-dx1)<1e-10
         self.dx = dx0
         self.viscosity = viscosity
@@ -80,16 +79,15 @@ class BurgersSpect2d(nn.Module, TimeStepper):
     def __init__(self, max_dt, mesh_size, mesh_bound=((0,0),(1,1)), viscosity=0.01, timescheme='rk2', force=None):
         super(BurgersSpect2d, self).__init__()
         self.max_dt = max_dt
-        self.mesh_size = list(mesh_size)
-        self.mesh_bound = mesh_bound
-        dx0 = (mesh_bound[1][0]-mesh_bound[0][0])/self.mesh_size[0]
-        dx1 = (mesh_bound[1][1]-mesh_bound[0][1])/self.mesh_size[1]
+        self.mesh_size = np.array(mesh_size).copy()
+        self.mesh_bound = np.array(mesh_bound).copy()
+        dx0,dx1 = (self.mesh_bound[1]-self.mesh_bound[0])/self.mesh_size
         assert abs(dx0-dx1)<1e-10
         self.dx = dx0
         self.viscosity = viscosity
         self._timescheme = timescheme
         self.force = force
-    def forward(self, nputs, T, **kw):
+    def forward(self, inputs, T, **kw):
         return self.predict(inputs, T, **kw)
 
 

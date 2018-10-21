@@ -25,10 +25,9 @@ class _CDE(nn.Module):
     def __init__(self, max_dt=0.2e-3, mesh_size=(256,256), mesh_bound=((0,0),(1,1))):
         super(_CDE, self).__init__()
         self.max_dt = max_dt
-        self.mesh_size = list(mesh_size)
-        self.mesh_bound = mesh_bound
-        dx0 = (mesh_bound[1][0]-mesh_bound[0][0])/self.mesh_size[0]
-        dx1 = (mesh_bound[1][1]-mesh_bound[0][1])/self.mesh_size[1]
+        self.mesh_size = np.array(mesh_size).copy()
+        self.mesh_bound = np.array(mesh_bound).copy()
+        dx0,dx1 = (self.mesh_bound[1]-self.mesh_bound[0])/self.mesh_size
         assert abs(dx0-dx1)<1e-10
         self.dx = dx0
         xy = np.mgrid[self.mesh_bound[0][0]:self.mesh_bound[1][0]:(self.mesh_size[0]+1)*1j,

@@ -15,12 +15,13 @@ class LagrangeInterp(nn.Module):
     Arguments:
         interp_dim (int): spatial dimension, m=interp_dim
         interp_coe (Tensor): DoubleTensor (cuda) or FloatTensor (cuda).
-            torch.size(mesh_size*interp_degree+1)
+            torch.size(np.array(mesh_size)*interp_degree+1)
         interp_degree (int): degree of Lagrange Interpolation Polynomial
-        mesh_bound (ndarray): dtype=double or float. shape=[2,m]. mesh_bound 
-            defines the interpolation domain.
-        mesh_size (ndarray): dtype=int, shape=[m,]. mesh_size defines the 
-            grid number of piecewise interpolation.
+        mesh_bound (tuple): ((l_1,l_2,...,l_n),(u_1,u_2,...,u_n)). mesh_bound 
+            defines the interpolation domain. l_i,u_i is lower and upper bound
+            of dimension i.
+        mesh_size (tuple): mesh_size defines the grid number of 
+            piecewise interpolation. mesh_size[i] is mesh num of dimension i.
     """
     def __init__(self, interp_dim, interp_degree, mesh_bound, mesh_size):
         super(LagrangeInterp, self).__init__()
@@ -88,12 +89,13 @@ class LagrangeInterpFixInputs(LagrangeInterp):
             torch.size=[...,m], where m is the spatial dimension.
         interp_dim (int): spatial dimension, m=interp_dim
         interp_coe (Tensor): DoubleTensor (cuda) or FloatTensor (cuda).
-            torch.size(mesh_size*interp_degree+1)
+            torch.size(np.array(mesh_size)*interp_degree+1)
         interp_degree (int): degree of Lagrange Interpolation Polynomial
-        mesh_bound (ndarray): dtype=double or float. shape=[2,m]. mesh_bound 
-            defines the interpolation domain.
-        mesh_size (ndarray): dtype=int, shape=[m,]. mesh_size defines the 
-            grid number of piecewise interpolation.
+        mesh_bound (tuple): ((l_1,l_2,...,l_n),(u_1,u_2,...,u_n)). mesh_bound 
+            defines the interpolation domain. l_i,u_i is lower and upper bound
+            of dimension i.
+        mesh_size (tuple): mesh_size defines the grid number of 
+            piecewise interpolation. mesh_size[i] is mesh num of dimension i.
     """
     def __init__(self, inputs, interp_dim, interp_degree, mesh_bound, mesh_size):
         super(LagrangeInterpFixInputs, self).__init__(interp_dim, 
