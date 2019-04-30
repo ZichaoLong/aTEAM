@@ -21,14 +21,14 @@ class NumpyFunctionInterface(ParamGroupsManager):
         on 'x_proj's, 'isfrozen's.
 
     .. warning::
-    Right now all parameters have to be dense Variable and their precision 
+    Right now all parameters have to be dense Variable and their dtype 
         (float or double) have to be the same. This will be improved in the 
         future.
 
     Arguments:
         params (iterable): See ParamGroupsManager.__doc__
         forward (callable): callable forward(**kw)
-            torch forward procedure, return a :class:`Variable`
+            torch forward procedure, return a :class:`torch.Tensor`
         isfrozen (bool): whether parameters should be frozen, if you set 
             isfrozen=True, as a result, grad of this param_group would be 
             set to be 0 after calling self.fprime(x).
@@ -99,9 +99,9 @@ class NumpyFunctionInterface(ParamGroupsManager):
         # check is_leaf,requires_grad
         for _,p in param_group_tmp['params'].items():
             if not p.is_leaf:
-                raise ValueError("can't manage a non-leaf Variable")
+                raise ValueError("can't manage a non-leaf Tensor")
             if not p.requires_grad:
-                raise ValueError("managing a Variable that does not "
+                raise ValueError("managing a Tensor that does not "
                         "require gradients")
         self.options_refresh()
 
@@ -159,7 +159,7 @@ class NumpyFunctionInterface(ParamGroupsManager):
             numel = p.numel()
             if not isfrozen:
                 p_tmp = torch.from_numpy(x[offset:offset+numel])\
-                        .view_as(p.data)
+                        .view_as(p)
                 p.data.copy_(p_tmp)
             offset += numel
         self._all_x_proj()
@@ -169,8 +169,7 @@ class NumpyFunctionInterface(ParamGroupsManager):
         self._all_grad_proj()
         for isfrozen, p in self.params_with_info('isfrozen'):
             if isfrozen or p.grad is None:
-                view = torch.from_numpy(
-                        np.zeros(p.data.numel(), dtype=self.dtype))
+                view = torch.zeros(p.numel(), dtype=p.dtype)
             else:
                 view = p.grad.data.view(-1).cpu()
             views.append(view)
@@ -188,7 +187,7 @@ class NumpyFunctionInterface(ParamGroupsManager):
             self._x_cache = _x_cache
             self._loss = self._forward()
             self._need_backward = True
-        return self._loss.data[0]
+        return self._loss.item()
     def fprime(self, x, always_double=True, *args, **kw):
         self.f(x)
         if self._need_backward:

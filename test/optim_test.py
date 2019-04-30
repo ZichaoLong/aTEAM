@@ -5,7 +5,6 @@ test for nn/optim/PGManager.py,NFI.py
 from numpy import *
 import numpy as np
 import torch
-from torch.autograd import Variable
 from collections import OrderedDict
 import torch.nn as nn
 import torch.nn.functional as F
@@ -47,7 +46,7 @@ class Net(nn.Module):
         return out
 net = Net()
 def forward_gen():
-    I = Variable(torch.FloatTensor(3).normal_())
+    I = torch.FloatTensor(3).normal_()
     def forward():
         return net(I)
     return forward

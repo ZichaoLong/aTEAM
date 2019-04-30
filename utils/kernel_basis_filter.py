@@ -9,7 +9,7 @@ from numpy import *
 from numpy.fft import *
 from numpy.linalg import *
 from scipy.signal import correlate,correlate2d,convolve2d
-from scipy.misc import factorial
+from scipy.special import factorial
 from functools import reduce
 #%%
 def circshift(ker, shape, *, cval=0):

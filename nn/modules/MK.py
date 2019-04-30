@@ -1,11 +1,10 @@
 """Moment(sum rules) and Kernel(convolution kernel) convertor"""
 from numpy import *
 from numpy.linalg import *
-from scipy.misc import factorial
+from scipy.special import factorial
 from functools import reduce
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 from ..functional import tensordot
 
 __all__ = ['M2K','K2M']
@@ -42,7 +41,7 @@ class _MK(nn.Module):
         for l in shape:
             M.append(zeros((l,l)))
             for i in range(l):
-                M[-1][i] = ((arange(l)-l//2)**i)/factorial(i)
+                M[-1][i] = ((arange(l)-(l-1)//2)**i)/factorial(i)
             invM.append(inv(M[-1]))
             self.register_buffer('_M'+str(j), torch.from_numpy(M[-1]))
             self.register_buffer('_invM'+str(j), torch.from_numpy(invM[-1]))
@@ -50,12 +49,10 @@ class _MK(nn.Module):
 
     @property
     def M(self):
-        return list(Variable(self._buffers['_M'+str(j)]) 
-                for j in range(self.dim()))
+        return list(self._buffers['_M'+str(j)] for j in range(self.dim()))
     @property
     def invM(self):
-        return list(Variable(self._buffers['_invM'+str(j)]) 
-                for j in range(self.dim()))
+        return list(self._buffers['_invM'+str(j)] for j in range(self.dim()))
 
     def size(self):
         return self._size
@@ -82,7 +79,7 @@ class M2K(_MK):
         super(M2K, self).__init__(shape)
     def forward(self, m):
         """
-        m (Variable): torch.size=[...,*self.shape]
+        m (Tensor): torch.size=[...,*self.shape]
         """
         sizem = m.size()
         m = self._packdim(m)
@@ -99,7 +96,7 @@ class K2M(_MK):
         super(K2M, self).__init__(shape)
     def forward(self, k):
         """
-        k (Variable): torch.size=[...,*self.shape]
+        k (Tensor): torch.size=[...,*self.shape]
         """
         sizek = k.size()
         k = self._packdim(k)

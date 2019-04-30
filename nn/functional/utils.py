@@ -1,7 +1,7 @@
 import torch
 from functools import reduce
 
-__all__ = ['tensordot','periodicpad']
+__all__ = ['tensordot','periodicpad', 'roll']
 
 def periodicpad(inputs, pad):
     """
@@ -76,3 +76,31 @@ def tensordot(a,b,dim):
     c = a@b
     return c.view(sizea0+sizeb1)
 
+def _roll(inputs, shift, axis):
+    shift = shift%inputs.shape[axis]
+    if shift == 0:
+        return inputs
+    idx1 = [slice(None),]*inputs.dim()
+    idx2 = [slice(None),]*inputs.dim()
+    idx1[axis] = slice(None,-shift)
+    idx2[axis] = slice(-shift,None)
+    return torch.cat([inputs[idx2],inputs[idx1]], dim=axis)
+def roll(inputs, shift, axis=None):
+    """
+    roll in PyTorch, see numpy.roll?
+    """
+    shape = inputs.shape
+    if axis is None:
+        if not isinstance(shift, int):
+            shift = sum(shift)
+        inputs = inputs.flatten()
+        inputs = _roll(inputs, shift, axis=0)
+        inputs = inputs.view(shape)
+        return inputs
+    if isinstance(axis, int):
+        assert isinstance(shift, int)
+        axis = [axis,]
+        shift = [shift,]
+    for (s,a) in zip(shift, axis):
+        inputs = _roll(inputs, s, a)
+    return inputs
