@@ -133,7 +133,7 @@ def test_Burgers2d(viscosity=0.1, max_dt=1e-5):
         b0.clear(); b1.clear()
 
         speed0 = torch.sqrt(x0[0,0]**2+x0[0,1]**2).data.cpu().numpy()
-        stream0.streamplot(X,Y,x0[0,0],x0[0,1],density=0.8,color='k',linewidth=5*speed0/speed0.max())
+        stream0.streamplot(X,Y,x0[0,0].data.cpu().numpy(),x0[0,1].data.cpu().numpy(),density=0.8,color='k',linewidth=5*speed0/speed0.max())
         timea0 = a0.imshow(x0[0,0].data.cpu().numpy()[::-1], cmap='jet')
         timeb0 = b0.imshow(x0[0,1].data.cpu().numpy()[::-1], cmap='jet')
         timec0 = h.colorbar(timea0, ax=a0)
