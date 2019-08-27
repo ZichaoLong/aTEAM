@@ -74,6 +74,10 @@ class M2K(_MK):
     convert moment matrix to convolution kernel
     Arguments:
         shape (tuple of int): kernel shape
+    Usage:
+        m2k = M2K([5,5])
+        m = torch.randn(5,5,dtype=torch.float64)
+        k = m2k(m)
     """
     def __init__(self, shape):
         super(M2K, self).__init__(shape)
@@ -91,6 +95,10 @@ class K2M(_MK):
     convert convolution kernel to moment matrix
     Arguments:
         shape (tuple of int): kernel shape
+    Usage:
+        k2m = K2M([5,5])
+        k = torch.randn(5,5,dtype=torch.float64)
+        m = k2m(k)
     """
     def __init__(self, shape):
         super(K2M, self).__init__(shape)

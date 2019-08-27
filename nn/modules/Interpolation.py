@@ -22,6 +22,14 @@ class LagrangeInterp(nn.Module):
             of dimension i.
         mesh_size (tuple): mesh_size defines the grid number of 
             piecewise interpolation. mesh_size[i] is mesh num of dimension i.
+    Usage:
+        # 3rd-order polynomial Lagrange interpolation in 2d domain 
+        # [0,1]x[1,2], with mesh_size 50x50
+        Approximator = LagrangeInterp(2,3,[(0,1),(1,2)],(50,50))
+        print(Approximator.interp_coe) # a 151x151 tensor (mesh_size*interp_degree+1)
+        InputCoord = torch.rand(10,10,10,10,2)
+        InputCoord[...,1] += 1 
+        Approximator(InputCoord)
     """
     def __init__(self, interp_dim, interp_degree, mesh_bound, mesh_size):
         super(LagrangeInterp, self).__init__()
@@ -96,6 +104,9 @@ class LagrangeInterpFixInputs(LagrangeInterp):
             of dimension i.
         mesh_size (tuple): mesh_size defines the grid number of 
             piecewise interpolation. mesh_size[i] is mesh num of dimension i.
+    Usage:
+        LagrangeInterpFixInputs is similar with LagrangeInterp except 
+        it was optimized for interpolating fixed inputs.
     """
     def __init__(self, inputs, interp_dim, interp_degree, mesh_bound, mesh_size):
         super(LagrangeInterpFixInputs, self).__init__(interp_dim, 

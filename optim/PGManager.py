@@ -5,29 +5,108 @@ from collections import OrderedDict,Iterator
 __all__ = ['ParamGroupsManager',]
 
 class ParamGroupsManager(object):
-    """Class for managing torch parameter groups. A parameter group is a dict. 
-    which contains a (key='params', value=an OrderedDict of parameters) pair.
-    For additional information corresponding to the parameter group, any other 
-    keys are OK. e.g.
-    param_group = dict(params=OrderedDict([(name1,tensor),...]),key1=True)
+    """
+    `ParamGroupsManager` is a class for managing torch parameter groups.
+    self.defaults = dict(options0=v0,options1=v1,...), 
+    self.param_groups = [param_group0,param_group1,...], where 
+        param_group = dict(
+                           params=OrderedDict([(name0,tensor0),...]),
+                           # options 
+                           key0=..., # with default value self.defaults[key0]
+                           key1=..., #        ...         self.defaults[key1]
+                           key2=..., #        ...         self.defaults[key2]
+                           ...)
+    `ParamGroupsManager` provides several interfaces to access parameters:
+        self.params,self.named_params,self.self.params_with_info,
+    Please refer to the docstrings of these properties.
 
     .. note:: 
     :class:`ParamGroupsManager` is similar to :class:`Optimizer.param_groups`. 
     The main difference between them is how to store parameters:
         for param_group in ParamGroupsManager.param_groups:
             param_group['params'] = an OrderedDict of named_parameters
-        for param_group in :class:`Optimizer.param_groups`:
+        for param_group in :class:`torch.Optimizer.param_groups`:
             param_group['params'] = a list of parameters
 
     Arguments:
-        params (iterable): params specifies what tensors should be managed, 
-            Either should params pass `ParamGroupsManager.is_params` or every 
-            element of params should pass `ParamGroupsManager.is_param_group`. 
-            See ParamGroupsManager.is_params?,
-            ParamGroupsManager.is_param_group?
+        params (iterable): params specifies what tensors should be managed. 
+            params will be convert to self.param_groups. 
+            Each of the following cases for params is OK, 
+            1). params = [tensor0, tensor1, tensor2, ...]
+                -> self.param_groups = [
+                        {'params':OrderedDict(enumerate(params)),
+                        ...options...}
+                        ]
+            2). params = dict(name0=tensor0, name1=tensor1, ...)
+                -> self.param_groups = [
+                        {'params':OrderedDict(params),
+                        ...options...}
+                        ]
+            3). params = [
+                    {'params':[tensor00,tensor01,...], key0:v00,...},
+                    {'params':[tensor10,tensor11,...], key0:v01,...},
+                    ...
+                    ]
+                -> self.param_groups = [
+                    {'params':OrderedDict(enumerate(params[0]['params'])), 
+                        key0:v00,...},
+                    {'params':OrderedDict(enumerate(params[1]['params'])), 
+                        key0:v01,...},
+                    ...
+                    ]
+            4). params = [
+                    {'params':{name00:tensor00,...}, key0:v00,...},
+                    {'params':{name10:tensor10,...}, key0:v01,...},
+                    ...
+                    ]
+                -> self.param_groups = [
+                    {'params':OrderedDict(params[0]['params']), 
+                        key0:v00,...},
+                    {'params':OrderedDict(params[1]['params']), 
+                        key0:v01,...},
+                    ...
+                    ]
+            self.param_groups will be initialized in self.__init__, if you 
+            want to add param_groups to self.param_groups after initialization,
+            you can use 
+                self.add_param_group(param_group), 
+            where param_group should be a list or dict of tensors (see 1),2)) 
+            or is already a param_group:
+                    {'params':[tensor00,tensor01,...], key0:v00,...} or 
+                    {'params':{name00:tensor00,...}, key0:v00,...},
         defaults (dict): default options for parameter groups. Different from 
-            parameters(i.e. params). Set param_group wise options can be set in
+            parameters(i.e. params). Options can also be set in
             augument `params`.
+    Example:
+        import torch
+        import torch.nn as nn
+        from aTEAM.optim import ParamGroupsManager
+        class Penalty(nn.Module):
+            def __init__(self,n,alpha=1e-5):
+                super(Penalty,self).__init__()
+                m = n//2
+                x1 = torch.arange(1,m+1,dtype=torch.float)
+                x2 = torch.arange(m+1,n+1,dtype=torch.float)
+                self.x1 = nn.Parameter(x1); self.x2 = nn.Parameter(x2)
+                self.n = n; self.alpha = alpha
+            def forward(self):
+                x = torch.cat([self.x1,self.x2],0)
+                return self.alpha*((x-1)**2).sum()+((x**2).sum()-0.25)**2
+        penalty = Penalty(4,1e-5)
+        # Each of the following case is OK, 'lr'='learning_rate'
+        pgm = ParamGroupsManager(params=penalty.parameters(),
+                defaults={'lr':0.1,'scale':10})
+        pgm = ParamGroupsManager(params=penalty.named_parameters(),
+                defaults={'lr':0.1,'scale':10})
+        pgm = ParamGroupsManager(params=[
+                {'params':[penalty.x1,]},{'params':{'x2':penalty.x2},'lr':0.2}
+                ],defaults={'lr':0.1,'scale':10})
+        # show what ParamGroupsManager does:
+        print("pgm.param_groups"); print(pgm.param_groups)
+        print("\npgm.params"); print(list(pgm.params))
+        print("\npgm.named_params"); print(list(pgm.named_params))
+        print("\npgm.params_with_info 'scale' and 'lr' ")
+        print(list(pgm.params_with_info('scale','lr')))
     """
     def __init__(self, params, defaults):
         self.defaults = defaults
@@ -98,7 +177,8 @@ class ParamGroupsManager(object):
                 # which is also a iterable of tensor when size>1.
                 params = [params,]
             if isinstance(params, Iterator):
-                # an Iterator can use only once
+                # an Iterator can use only once, 
+                # we should at first convert it to a list.
                 params = list(params)
             assert len(list(params))>0, "got empty params"
             if not isinstance(params, dict):
@@ -126,17 +206,17 @@ class ParamGroupsManager(object):
         return False,None
     # add_param_group
     def add_param_group(self, param_group):
-        """Add a param group to the :class:`ParamGroupsManager`s `param_groups`
+        """Add a param group to self.param_groups
 
-        This can be useful when fine tuning a pre-trained network as 
-        frozen layers can be made trainable and added to the 
-        :class:`ParamGroupsManager` as training progresses.
+        This can be useful when you want to add optimization parameters 
+        during training.
 
         Arguments:
             param_group (dict or params): Specifies what Variables should be 
-            optimized, group specific optimization options are optional. 
-            Either ParamGroupsManager.is_params(param_group)[0] or 
-            ParamGroupsManager.is_param_group(param_group)[0] should be True.
+                added to be managed.
+                assert  
+                    ParamGroupsManager.is_params(param_group)[0] or 
+                    ParamGroupsManager.is_param_group(param_group)[0]
         """
         _is_params,params_tmp = ParamGroupsManager.is_params(param_group)
         _is_param_group,param_group_tmp = \
