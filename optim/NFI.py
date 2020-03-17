@@ -193,6 +193,10 @@ class NumpyFunctionInterface(ParamGroupsManager):
         if self._loss is None or not np.array_equal(_x_cache, self._x_cache):
             self._x_cache = _x_cache
             self._loss = self._forward()
+            if torch.isnan(self._loss):
+                self._loss = (torch.ones(1,
+                    requires_grad=self._loss.requires_grad)/
+                    torch.zeros(1)).to(loss)
             self._need_backward = True
         return self._loss.item()
     def fprime(self, x, always_double=True, *args, **kw):
